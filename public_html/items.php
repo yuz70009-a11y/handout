@@ -12,6 +12,15 @@ require_once __DIR__ . '/../includes/config.php';
 // TODO: $_GET から keyword（検索キーワード）と category（カテゴリ）を取得する
 $keyword  = $_GET['keyword'] ?? '';
 $category = $_GET['category'] ?? '';
+// 商品の並び替え条件を取得
+$sort = $_GET['sort'] ?? 'newest';
+
+// 許可する並び替え条件
+$allowedSorts = ['newest', 'price_asc', 'price_desc'];
+
+if (!in_array($sort, $allowedSorts, true)) {
+    $sort = 'newest';
+}
 
 // TODO（上級）: $_GET から page（ページ番号）を取得する。1未満なら1にする。
 $page    = isset($_GET['page']) ? (int) $_GET['page'] : 1;
@@ -46,10 +55,16 @@ $page = min($page, $totalPages);
 $offset = ($page - 1) * $perPage;
 
 // ---- ④ 商品一覧を取得する（初級）--------------------------------------------
+// 並び替え条件を設定
+$orderBy = match ($sort) {
+    'price_asc'  => 'price ASC',
+    'price_desc' => 'price DESC',
+    default      => 'created_at DESC',
+};
 $sql = "SELECT id, name, price, image, stock, category
         FROM items
         {$whereSql}
-        ORDER BY created_at DESC
+        ORDER BY {$orderBy}
         LIMIT {$perPage} OFFSET {$offset}";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -89,6 +104,17 @@ function buildQuery(array $overrides = []): string
                     </option>
                 <?php endforeach; ?>
             </select>
+            <select name="sort">
+    <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>
+        新着順
+    </option>
+    <option value="price_asc" <?= $sort === 'price_asc' ? 'selected' : '' ?>>
+        価格が安い順
+    </option>
+    <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>>
+        価格が高い順
+    </option>
+</select>
             <button type="submit">検索</button>
         </form>
 
